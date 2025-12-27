@@ -11,7 +11,7 @@ class CreateJobRequest(BaseModel):
     dataset_id: int = Field(..., description="ID del dataset a procesar")
     rules: dict[str, Any] = Field(..., description="JSON con reglas de limpieza")
     output_format: str = Field(
-        default="parquet",
+        default="csv",
         description="Formato de salida (parquet o csv)",
     )
 

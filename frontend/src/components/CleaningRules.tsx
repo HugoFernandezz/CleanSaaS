@@ -297,6 +297,7 @@ export function CleaningRules({
     createJobMutation.mutate({
       dataset_id: datasetId,
       rules: exportedRules,
+      output_format: "csv", // Formato CSV para que sea legible en Excel
     })
   }
 

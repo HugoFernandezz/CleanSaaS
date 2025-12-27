@@ -103,7 +103,7 @@ export function JobStatus({ jobId, onComplete, onError }: JobStatusProps) {
                   size="lg"
                   className="w-full"
                 >
-                  Descargar Archivo Limpio
+                  Descargar CSV
                 </Button>
               </div>
             </div>

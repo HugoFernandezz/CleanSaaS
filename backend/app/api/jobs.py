@@ -1,6 +1,7 @@
 """API endpoints para gestión de cleaning jobs."""
 
 import logging
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -80,9 +81,28 @@ async def process_cleaning_job(
                 output_format=output_format,
             )
 
-            # Actualizar job con resultado
+            # 1. Definir la Key de S3 (debe coincidir con lo que espera get_job_status)
+            s3_key = f"cleaned/job_{job_id}.{output_format}"
+            
+            # 2. Subir el archivo local a S3
+            logger.info(f"Uploading cleaned file to S3: {settings.s3_bucket_name}/{s3_key}")
+            storage_service.s3_client.upload_file(
+                output_path,
+                settings.s3_bucket_name,
+                s3_key,
+            )
+            
+            # 3. Limpiar archivo local temporal para no llenar el disco
+            try:
+                os.remove(output_path)
+                logger.info(f"Removed temporary file: {output_path}")
+            except OSError as e:
+                logger.warning(f"Could not remove temporary file {output_path}: {str(e)}")
+            
+            # 4. Actualizar job con resultado
+            # Guardamos la ruta local para que get_job_status pueda hacer el .replace correctamente
             job.status = CleaningJobStatus.COMPLETED
-            job.output_path_s3 = output_path
+            job.output_path_s3 = output_path  # Mantenemos la ruta local para compatibilidad con get_job_status
             await session.commit()
 
             logger.info(

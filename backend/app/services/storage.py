@@ -1,5 +1,6 @@
 """Storage service for S3/MinIO operations using boto3."""
 
+import json
 import logging
 from datetime import timedelta
 from typing import Any
@@ -52,11 +53,12 @@ class StorageService:
         **kwargs: Any,
     ) -> str:
         """
-        Generar URL prefirmada para operaciones S3.
+        Generar URL para operaciones S3.
 
-        Para operaciones de descarga (get_object), usa un cliente temporal
-        con el endpoint público (localhost:9000) para que la firma sea válida
-        desde el navegador del usuario.
+        Para operaciones de descarga (get_object), devuelve una URL pública directa
+        sin firma, ya que el bucket es público para lectura.
+
+        Para otras operaciones (put_object, etc.), genera una URL prefirmada.
 
         Args:
             operation: Operación a realizar ('put_object', 'get_object', etc.)
@@ -66,36 +68,22 @@ class StorageService:
             **kwargs: Parámetros adicionales para la operación
 
         Returns:
-            URL prefirmada
+            URL pública (get_object) o URL prefirmada (otras operaciones)
 
         Raises:
             ClientError: Si hay un error de cliente de boto3
             BotoCoreError: Si hay un error general de boto3
         """
         try:
-            # Para operaciones de descarga, usar endpoint público para que la firma
-            # sea válida desde el navegador del usuario
+            # Para operaciones de descarga, usar URL pública directa (sin firma)
+            # El bucket es público para lectura, así que no necesitamos presigned URLs
             if operation == "get_object":
-                # Cliente solo para firmar URLs públicas
-                # Nota: Esta es una operación offline (matemática), no requiere
-                # conexión de red desde el contenedor
-                # MinIO es muy estricto con la región, usar 'us-east-1' hardcodeado
-                signer_client = boto3.client(
-                    "s3",
-                    endpoint_url="http://localhost:9000",
-                    aws_access_key_id=settings.s3_access_key_id,
-                    aws_secret_access_key=settings.s3_secret_access_key,
-                    region_name="us-east-1",
-                    config=Config(signature_version="s3v4"),
+                # URL directa sin firma - el bucket es público
+                url = f"http://localhost:9000/{bucket}/{key}"
+                logger.info(
+                    f"Generated public URL for {operation} on bucket={bucket}, key={key}"
                 )
-                
-                # Sin params extra, solo lo básico: Bucket y Key
-                # NO incluir ResponseContentDisposition ni ningún otro parámetro
-                url = signer_client.generate_presigned_url(
-                    ClientMethod=operation,
-                    Params={"Bucket": bucket, "Key": key},
-                    ExpiresIn=expires_in,
-                )
+                return url
             else:
                 # Para otras operaciones (put_object, etc.), usar el cliente interno
                 url = self.s3_client.generate_presigned_url(
@@ -192,6 +180,52 @@ class StorageService:
         except BotoCoreError as e:
             logger.error(f"BotoCoreError checking bucket: {str(e)}")
             raise
+
+    def ensure_bucket_public(self, bucket_name: str) -> None:
+        """
+        Asegurar que el bucket existe y es público para lectura.
+
+        Crea el bucket si no existe y aplica una política que permite
+        s3:GetObject a todo el mundo (*). La política se aplica SIEMPRE,
+        incluso si el bucket ya existía.
+
+        Args:
+            bucket_name: Nombre del bucket
+
+        Raises:
+            ClientError: Si hay un error de cliente de boto3 (excepto si el bucket ya existe)
+            BotoCoreError: Si hay un error general de boto3
+        """
+        # 1. Intentar crear el bucket
+        try:
+            self.s3_client.create_bucket(Bucket=bucket_name)
+            logger.info(f"Created bucket: {bucket_name}")
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code")
+            if error_code in ("BucketAlreadyOwnedByYou", "BucketAlreadyExists"):
+                logger.info(f"Bucket {bucket_name} already exists. Proceeding to set policy.")
+            else:
+                logger.error(f"Error creating bucket: {error_code}")
+                raise
+
+        # 2. Esta parte debe ejecutarse SIEMPRE, fuera del bloque try/except de creación
+        policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "*"},
+                    "Action": ["s3:GetObject"],
+                    "Resource": [f"arn:aws:s3:::{bucket_name}/*"],
+                }
+            ],
+        }
+
+        # Aplicar la política
+        self.s3_client.put_bucket_policy(
+            Bucket=bucket_name, Policy=json.dumps(policy)
+        )
+        logger.info(f"Enforced public read policy on bucket: {bucket_name}")
 
 
 # Instancia singleton del servicio

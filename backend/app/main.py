@@ -1,10 +1,16 @@
 """FastAPI application entry point."""
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import datasets, debug, files, jobs
+from app.core.config import settings
 from app.core.db import engine
+from app.services.storage import storage_service
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="CleanSaaS API",
@@ -34,6 +40,13 @@ async def startup() -> None:
     # Verificar conexión a la base de datos
     async with engine.begin() as conn:
         await conn.run_sync(lambda sync_conn: None)
+    
+    # Asegurar que el bucket existe y es público para lectura
+    try:
+        storage_service.ensure_bucket_public(settings.s3_bucket_name)
+    except Exception as e:
+        logger.error(f"Error ensuring bucket public: {str(e)}")
+        # No fallar el startup si hay error, pero loguearlo
 
 
 @app.on_event("shutdown")
