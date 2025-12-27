@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Estilos para react-querybuilder */
+.rqb {
+  font-family: inherit;
+}
+
+.rqb-rule {
+  margin: 0.5rem 0;
+}
+
+.rqb-rule-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  background-color: #f9fafb;
+  margin: 0.5rem 0;
+}
+
+.rqb-rule-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rqb-rule-group-body {
+  margin-left: 1rem;
+}
+
+.rqb-rule-body {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rqb-field,
+.rqb-operator,
+.rqb-value {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.rqb-add-rule,
+.rqb-add-group,
+.rqb-remove {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rqb-add-rule:hover,
+.rqb-add-group:hover {
+  background-color: #eff6ff;
+}
+
+.rqb-remove:hover {
+  background-color: #fef2f2;
+}
+
+

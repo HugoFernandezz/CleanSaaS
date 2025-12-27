@@ -1,0 +1,21 @@
+---
+description: Lógica de traducción de reglas dinámicas a expresiones Polars
+globs: backend/app/services/engine/**/*.py
+alwaysApply: true
+---
+
+# Reglas del Motor de Pipeline de Datos
+
+## 1. Objetivo
+Traductor determinista: JSON de reglas (frontend) -> `pl.LazyFrame` ejecutable.
+
+## 2. Seguridad
+* **Prohibido:** `eval()`, `exec()`, interpolación de strings SQL/Python.
+* **Patrón:** Usar Visitor/Interpreter para recorrer el árbol JSON.
+
+## 3. Manejo de Tipos
+* Inspeccionar `LazyFrame.schema` y hacer casting explícito antes de comparar (ej. string "100" -> float 100.0).
+
+## 4. I/O Eficiente
+* Leer de S3 con credenciales inyectadas.
+* Escribir de manera atómica (tmp -> processed).

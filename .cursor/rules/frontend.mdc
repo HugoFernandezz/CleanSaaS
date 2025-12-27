@@ -1,0 +1,25 @@
+---
+description: Estándares de Frontend para React, Virtualización y UI
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: true
+---
+
+# Reglas de Desarrollo Frontend (React)
+
+## 1. Stack Tecnológico
+* **Framework:** React 18+ (Vite), TypeScript.
+* **Estado:** TanStack Query v5 (remoto), Zustand (local).
+* **UI:** Shadcn/UI + Tailwind CSS.
+* **Formularios:** React Hook Form + Zod.
+
+## 2. Rendimiento y Virtualización
+* **Regla de Oro:** NUNCA renderizar listas grandes (>50 items) directo en el DOM.
+* **Implementación:** Usar `@tanstack/react-virtual` o `react-window` para tablas de preview.
+
+## 3. Constructor de Reglas
+* Usar `react-querybuilder`.
+* Salida compatible con JSONLogic/Backend Parser.
+
+## 4. Gestión de Archivos (Uploads)
+* **Flujo:** Solicitar Presigned URL -> PUT directo a S3 -> Notificar al Backend.
+* Nunca enviar archivos grandes a la API directamente.

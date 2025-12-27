@@ -1,0 +1,30 @@
+---
+description: Estándares de Backend para FastAPI, Polars y PostgreSQL
+globs: backend/**/*.py
+alwaysApply: true
+---
+
+# Reglas de Desarrollo Backend (Python)
+
+## 1. Stack Tecnológico
+* **Web Framework:** FastAPI (Async).
+* **Motor de Datos:** Polars (Rust-backed). **PROHIBIDO PANDAS**.
+* **ORM:** SQLAlchemy 2.0 (Async) + Alembic.
+* **Validación:** Pydantic v2 (modelos estrictos).
+
+## 2. Patrones de FastAPI
+* **Async First:** Todos los endpoints deben ser `async def`.
+* **Inyección:** Usar `Depends()` para DB, auth y servicios.
+* **Errores:** Mapear excepciones de negocio a códigos HTTP. Nunca 500 genéricos.
+
+## 3. Ingeniería de Datos con Polars (CRÍTICO)
+* **Lazy Evaluation:** SIEMPRE usar `pl.scan_csv()`, `pl.scan_parquet()`. NUNCA `read_csv`.
+* **Streaming:** Al materializar, usar SIEMPRE `collect(streaming=True)`.
+* **Tipado:** Usar `pl.LazyFrame` en firmas de funciones.
+* **Optimización:** Aplicar `filter` y `select` lo antes posible.
+
+## 4. Estructura de Código
+* `/app/api`: Routers.
+* `/app/models`: SQLAlchemy.
+* `/app/schemas`: Pydantic.
+* `/app/services`: Lógica de negocio (CleaningEngine).
