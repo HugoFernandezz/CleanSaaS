@@ -79,24 +79,21 @@ class StorageService:
                 # Cliente solo para firmar URLs públicas
                 # Nota: Esta es una operación offline (matemática), no requiere
                 # conexión de red desde el contenedor
+                # MinIO es muy estricto con la región, usar 'us-east-1' hardcodeado
                 signer_client = boto3.client(
                     "s3",
-                    endpoint_url="http://localhost:9000",  # Endpoint externo para el usuario
+                    endpoint_url="http://localhost:9000",
                     aws_access_key_id=settings.s3_access_key_id,
                     aws_secret_access_key=settings.s3_secret_access_key,
-                    region_name=settings.s3_region,
+                    region_name="us-east-1",
                     config=Config(signature_version="s3v4"),
                 )
-                # Agregar Content-Disposition para descarga con nombre amigable
-                params = {
-                    "Bucket": bucket,
-                    "Key": key,
-                    "ResponseContentDisposition": f'attachment; filename="{key.split("/")[-1]}"',
-                    **kwargs,
-                }
+                
+                # Sin params extra, solo lo básico: Bucket y Key
+                # NO incluir ResponseContentDisposition ni ningún otro parámetro
                 url = signer_client.generate_presigned_url(
                     ClientMethod=operation,
-                    Params=params,
+                    Params={"Bucket": bucket, "Key": key},
                     ExpiresIn=expires_in,
                 )
             else:
