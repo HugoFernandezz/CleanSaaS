@@ -26,9 +26,8 @@ export function JobStatus({ jobId, onComplete, onError }: JobStatusProps) {
 
   useEffect(() => {
     if (jobStatus?.status === "completed" && jobStatus.download_url) {
-      // Corregir URL: reemplazar hostname interno de Docker por localhost
-      const correctedUrl = jobStatus.download_url.replace("minio:9000", "localhost:9000")
-      onComplete?.(correctedUrl)
+      // La URL ya viene correcta del backend con el endpoint público
+      onComplete?.(jobStatus.download_url)
     }
     if (jobStatus?.status === "failed") {
       onError?.(jobStatus.error_message || "El procesamiento falló")
@@ -69,11 +68,6 @@ export function JobStatus({ jobId, onComplete, onError }: JobStatusProps) {
 
   const isProcessing = jobStatus.status === "pending" || jobStatus.status === "running"
 
-  // Corregir URL de descarga: reemplazar hostname interno de Docker por localhost
-  const correctedDownloadUrl = jobStatus.download_url
-    ? jobStatus.download_url.replace("minio:9000", "localhost:9000")
-    : null
-
   return (
     <Card>
       <CardHeader>
@@ -96,7 +90,7 @@ export function JobStatus({ jobId, onComplete, onError }: JobStatusProps) {
             </div>
           )}
 
-          {jobStatus.status === "completed" && correctedDownloadUrl && (
+          {jobStatus.status === "completed" && jobStatus.download_url && (
             <div className="space-y-4">
               <div className="p-4 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-sm text-green-800 mb-3">
@@ -104,12 +98,12 @@ export function JobStatus({ jobId, onComplete, onError }: JobStatusProps) {
                 </p>
                 <Button
                   onClick={() => {
-                    window.open(correctedDownloadUrl, "_blank")
+                    window.open(jobStatus.download_url!, "_blank")
                   }}
                   size="lg"
                   className="w-full"
                 >
-                  Descargar CSV Limpio
+                  Descargar Archivo Limpio
                 </Button>
               </div>
             </div>

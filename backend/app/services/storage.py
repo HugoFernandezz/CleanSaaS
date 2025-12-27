@@ -54,6 +54,10 @@ class StorageService:
         """
         Generar URL prefirmada para operaciones S3.
 
+        Para operaciones de descarga (get_object), usa un cliente temporal
+        con el endpoint público (localhost:9000) para que la firma sea válida
+        desde el navegador del usuario.
+
         Args:
             operation: Operación a realizar ('put_object', 'get_object', etc.)
             bucket: Nombre del bucket
@@ -69,11 +73,39 @@ class StorageService:
             BotoCoreError: Si hay un error general de boto3
         """
         try:
-            url = self.s3_client.generate_presigned_url(
-                ClientMethod=operation,
-                Params={"Bucket": bucket, "Key": key, **kwargs},
-                ExpiresIn=expires_in,
-            )
+            # Para operaciones de descarga, usar endpoint público para que la firma
+            # sea válida desde el navegador del usuario
+            if operation == "get_object":
+                # Cliente solo para firmar URLs públicas
+                # Nota: Esta es una operación offline (matemática), no requiere
+                # conexión de red desde el contenedor
+                signer_client = boto3.client(
+                    "s3",
+                    endpoint_url="http://localhost:9000",  # Endpoint externo para el usuario
+                    aws_access_key_id=settings.s3_access_key_id,
+                    aws_secret_access_key=settings.s3_secret_access_key,
+                    region_name=settings.s3_region,
+                    config=Config(signature_version="s3v4"),
+                )
+                # Agregar Content-Disposition para descarga con nombre amigable
+                params = {
+                    "Bucket": bucket,
+                    "Key": key,
+                    "ResponseContentDisposition": f'attachment; filename="{key.split("/")[-1]}"',
+                    **kwargs,
+                }
+                url = signer_client.generate_presigned_url(
+                    ClientMethod=operation,
+                    Params=params,
+                    ExpiresIn=expires_in,
+                )
+            else:
+                # Para otras operaciones (put_object, etc.), usar el cliente interno
+                url = self.s3_client.generate_presigned_url(
+                    ClientMethod=operation,
+                    Params={"Bucket": bucket, "Key": key, **kwargs},
+                    ExpiresIn=expires_in,
+                )
             logger.info(
                 f"Generated presigned URL for {operation} on bucket={bucket}, key={key}"
             )
